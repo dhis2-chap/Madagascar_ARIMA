@@ -27,9 +27,8 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     
     predicted_dists <- forecast(model, new_data = df_tsibble_new)
     
-    preds <- data.frame(matrix(ncol = 100, nrow = nrow(df_tsibble_new)))  # 5 rows as an example
+    preds <- data.frame(matrix(ncol = 100, nrow = nrow(df_tsibble_new)))
     
-    # Assign column names
     colnames(preds) <- paste("sample", 1:100, sep = "_")
     
     for(i in 1:nrow(df_tsibble_new)){
@@ -49,6 +48,17 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     #print(paste("Forecasted values:", paste(df[, "sample_0", drop=TRUE], collapse = ", ")))
   }
   write.csv(full_df, predictions_fn, row.names = FALSE)
+}
+
+args <- commandArgs(trailingOnly = TRUE)
+
+if (length(args) == 4) {
+  model_fn <- args[1]
+  historic_data_fn <- args[2]
+  future_climatedata_fn <- args[3]
+  predictions_fn <- args[4]
+  
+  predict_chap(model_fn, historic_data_fn, future_climatedata_fn, predictions_fn)
 }
 
 #testing:

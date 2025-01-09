@@ -5,66 +5,46 @@ and the data is from https://gitlab.com/pivot-dev/PRIDE-C/pridec-model/-/blob/ma
 The goal is to integrate the ARIMA model they have made, so it can function through CHAP. 
 I decided not to use any of the plotting as CHAP does this on its own (I think).
 
-## Creating and scaling features
-The dataset already has $43$ features. And we will make some new ones with 
-the function mutate from the dplyr library. Below csb_mal is passed as the first argument to mutate, 
-this is what the operator "|>" does. For a list dyn_vars of column names we create lagged columns 
-with a lag of three, and the new columns become rainfall_lag3, if it was originaly named rainfall.
-```
-mal_prep <- csb_mal |>
-  mutate(across(all_of(dyn_vars), ~ lag(.x, 3), .names = "{.col}_lag3"))
-```
-We also make some new columns, like month_season and year_ct to easily access the desired data. 
-In total, we end up with $81$ features in the train_data.
+## Data
+The dataset already has $43$ features. However, we only use three of them to fit the model, as well as indexes for location and time. 
+In data_preperation.R I remove the unneccessary features, some might be used in other models. Then i split the data into training data and test data, where we later predict the values for the test data. These are saved as csv files called trainData and futureClimateData respectively. Reducing the dataset is not neccessary, but makes it a lot easier to work with.
 
-We split the training into four different folds where each fold has three years to train on 
-and one year to test on. (this could maybe be more general as it will not use data for 
-the coming year even if supplied, ie. for year 8)
+
+## Training
+We source some useful helper functions from utils.R, similar functions exist in other R packages. Not necessary to use utils.R. We then make the train_chap funcion which calls train_single_region for each seperate location. 
 ```
-create_cv_3yr_split <- function(data_to_split){
-  #create splits using rsamples [3 years to train and 1 to test]
-  indices <- list(
-    list(analysis = which(data_to_split$year_ct %in% c(1,2,3)),
-         assessment = which(data_to_split$year_ct == 4)),
-    list(analysis = which(data_to_split$year_ct %in% 2:4),
-         assessment = which(data_to_split$year_ct == 5)),
-    list(analysis = which(data_to_split$year_ct %in% 3:5),
-         assessment = which(data_to_split$year_ct == 6)),
-    list(analysis = which(data_to_split$year_ct %in% 4:6),
-         assessment = which(data_to_split$year_ct == 7))
-  )
-  splint_inds <- lapply(indices, make_splits, data = data_to_split)
-  cv_folds <- manual_rset(splint_inds, c("Fold2020", "Fold2021", "Fold2022", "Fold2023"))
+train_single_region <- function(df, location){
+  df <- mutate(df, date = yearmonth(date)) #so tsibble understands it is monthly data
+  df <- create_lagged_feature(df, "rain_mm", 3, include_all = FALSE)$df
+  df <- create_lagged_feature(df, "temp_c", 3, include_all = FALSE)$df
+  df <- cut_top_rows(df, 3)
   
-  return(cv_folds)
+  df_tsibble <- as_tsibble(df, index = date)
+  model <- df_tsibble |>
+    model(
+      ARIMA(n_palu ~ rain_mm_3 + temp_c_3 + net_time)
+    )  
+  return(model)
 }
+```
+I change the date to monthly to avoid making a row for every day, this could make the model slightly different as ARIMA now might assumes the months are equispaced, not sure. Then I use helper functions for lag and deleting the top_rows, could use mutate as well. Then fit the ARIMA model through tsibble objects, and returns the fitted model. From train_chap we save all the models in an output folder.
 
-From the object cv_folds we can access the data as training(cv_folds$splits[[1]]) and testing(cv_folds$splits[[2]]) to 
-get the training data for the first fold or the test data for the second fold. (This is maybe only used for model evaluation?)
+## Predicting
+We similarly preproccess the data for each region and then predict with the forecast function as below.
+```
+predicted_dists <- forecast(model, new_data = df_tsibble_new)
 
-## The model
-We use the function ARIMA() from the fable package which automatically fits an ARIMA model to the supplied training data. Below is how 
-it was done in the script, which only trains on years 3, 4, 5 and for three random municipalities(csb). We then fit one baseline model 
-and one with lagged covariates for rain and temperature and the time since last mosquito net distribuition, which is every three years in 
-Madagascar. (seems like a lot of the data processing, with new and lagged columns, was unneccessary for the modelling in this case, 
-maybe useful more generaly)
+preds <- data.frame(matrix(ncol = 100, nrow = nrow(df_tsibble_new)))
+    
+    colnames(preds) <- paste("sample", 1:100, sep = "_")
+    
+    for(i in 1:nrow(df_tsibble_new)){
+      dist <- predicted_dists[i, "n_palu"]$n_palu
+      preds[i,] <- rnorm(100, mean = mean(dist), sd = sqrt(variance(dist)))
+    }
 ```
-fit <- train_ts |>
-  filter(year_ct %in% c(3,4,5)) |>
-  filter(csb %in% sample(csb,3)) |>
-  model(
-    auto = ARIMA(n_palu),
-    auto_ex = ARIMA(n_palu~rain_mm_lag3 + temp_c_lag3 + net_time)
-  )
-```
-To fit for all years and all municipalities we simply skip the filter lines:
-```
-fit <- train_ts |>
-  model(
-    auto = ARIMA(n_palu),
-    auto_ex = ARIMA(n_palu~rain_mm_lag3 + temp_c_lag3 + net_time)
-  )
-```
+We then get the mean and variation of the normal distribuition and make 100, should maybe be 1000, samples for each prediction. We then columnbind all the predictions for the different locations and write the final dataframe to a csv file.
+
 
 
 ## Changes
