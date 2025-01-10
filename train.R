@@ -42,23 +42,6 @@ if (length(args) == 2) {
 #  stop("Usage: Rscript train.R <csv_fn> <model_fn>")
 #}
 
-#testing
-
-train_chap("input/trainData.csv", "output/model.bin")
-
-dataframe_list <- get_df_per_location("input/trainData.csv")
-df <- dataframe_list[[3]]
-df <- mutate(df, date = yearmonth(date)) #so tsibble understands it is monthly data, fails with exact date
-df <- create_lagged_feature(df, "rain_mm", 3, include_all = FALSE)
-df <- create_lagged_feature(df, "temp_c", 3, include_all = FALSE)
-df <- cut_top_rows(df, 3)
-# 
-# df_tsibble <- as_tsibble(df, index = date)
-# model <- df_tsibble |>
-#   model(
-#     ARIMA(n_palu ~ rain_mm_3 + temp_c_3 + net_time)
-#   )  
-# report(model)
 
 
 
