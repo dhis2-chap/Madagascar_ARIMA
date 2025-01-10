@@ -17,13 +17,16 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     historic_df <- historic_per_location[[location]]
     model <- models[[location]]
     
-    df <- mutate(df, time_period = yearmonth(time_period)) |> #so tsibble understands it is monthly data, fails with exact date
-      create_lagged_feature("rainfall", 3, include_all = FALSE) |>
-      create_lagged_feature("mean_temperature", 3, include_all = FALSE) |>
-      fill_top_rows_from_historic_last_rows(historic_df, "rainfall", 3) |>
-      fill_top_rows_from_historic_last_rows(historic_df, "mean_temperature", 3)
+    df$disease_cases <- NA #so the dataframes have the same columns
     
-    df_tsibble_new <- as_tsibble(df, index = time_period)
+    tot_df <- rbind(historic_df, df) |> #row-bind them together
+      mutate(time_period = yearmonth(time_period)) |> #so tsibble understands it is monthly data, fails with exact date
+      create_lagged_feature("rainfall", 3, include_all = FALSE) |>
+      create_lagged_feature("mean_temperature", 3, include_all = FALSE)
+    
+    future_df <- tot_df[(nrow(historic_df) + 1): nrow(tot_df),]
+    
+    df_tsibble_new <- as_tsibble(future_df, index = time_period)
     
     predicted_dists <- forecast(model, new_data = df_tsibble_new)
     
@@ -36,7 +39,7 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
       preds[i,] <- rnorm(100, mean = mean(dist), sd = sqrt(variance(dist)))
     }
     
-    sample_df <- cbind(df, preds)
+    sample_df <- cbind(future_df, preds)
     
     if (first_location){
       full_df <- sample_df
@@ -47,8 +50,6 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     }
     #print(paste("Forecasted values:", paste(df[, "sample_0", drop=TRUE], collapse = ", ")))
   }
-  #colnames(full_df)[1] <- "location" #preferred name for location in CHAP
-  #colnames(full_df)[2] <- "time_period" #preferred name for time in CHAP
   write.csv(full_df, predictions_fn, row.names = FALSE)
 }
 
@@ -62,4 +63,9 @@ if (length(args) == 4) {
   
   predict_chap(model_fn, historic_data_fn, future_climatedata_fn, predictions_fn)
 }
+
+
+
+
+
 
