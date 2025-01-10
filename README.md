@@ -9,7 +9,7 @@ The dataset already has 43 features. However, we only use three of them to fit t
 In data_preperation.R I remove the unneccessary features for this model. Reducing the dataset is not neccessary, but makes it easier to work with. I also rename the features to the naming convention in CHAP, which for instance is "location" instead of "csb"(should be a overview of the naming conventions somewhere). Then I split the data into training data and test data, where we later predict the values for the test data. These are saved as csv files called trainData and futureClimateData respectively.
 
 ## Training
-We source some useful helper functions from utils.R, similar functions exist in other R packages. Not necessary to use utils.R. We then make the train_chap function which calls train_single_region for each seperate location. 
+We source some useful helper functions from utils.R, similar functions exist in other R packages. Not necessary to use utils.R. We then make the train_chap function which calls train_single_region for each seperate location. We make different models for if net_time is included or not as the tests in CHAP only use climate data, like rainfall and temperature. 
 ```
 train_single_region <- function(df, location){
   df <- mutate(df, time_period = yearmonth(time_period)) |> 
@@ -36,20 +36,41 @@ train_single_region <- function(df, location){
 I change the date to monthly to avoid making a row for every day, this could make the model slightly different as ARIMA now might assumes the months are equispaced, not sure. Then I use helper functions for lag and deleting the top_rows, could use mutate as well. Then fit the ARIMA model through tsibble objects, and returns the fitted model. From train_chap we save all the models in an output folder.
 
 ## Predicting
-We similarly preproccess the data for each region and then predict with the forecast function as below.
+For each location we process the data as below. We add disease_cases to the future dataframe and make the tsibble tot_tible for all historic and future data with lags and the formatting we desire. We then split it back into historic and future tsibbles.
 ```
-predicted_dists <- forecast(model, new_data = df_tsibble_new)
+df <- future_per_location[[location]]
+historic_df <- historic_per_location[[location]]
+model <- models[[location]]
 
-preds <- data.frame(matrix(ncol = 100, nrow = nrow(df_tsibble_new)))
+df$disease_cases <- NA #so the dataframes have the same columns
+
+tot_tible <- rbind(historic_df, df) |> #row-bind them together
+  mutate(time_period = yearmonth(time_period)) |> #so tsibble understands it is monthly data, fails with exact date
+  create_lagged_feature("rainfall", 3, include_all = FALSE) |>
+  create_lagged_feature("mean_temperature", 3, include_all = FALSE) |> 
+  as_tsibble(index=time_period)
+
+historic_tible = tot_tible[1:nrow(historic_df),]
+future_tible <- tot_tible[(nrow(historic_df) + 1): nrow(tot_tible),]
     
-    colnames(preds) <- paste("sample", 1:100, sep = "_")
-    
-    for(i in 1:nrow(df_tsibble_new)){
-      dist <- predicted_dists[i, "n_palu"]$n_palu
-      preds[i,] <- rnorm(100, mean = mean(dist), sd = sqrt(variance(dist)))
-    }
 ```
-We then get the mean and variation of the normal distribuition and make 100, should maybe be 1000, samples for each prediction. We then cbind all the predictions for the different locations and write the final dataframe to a csv file. Her we rename the columnnames "date" to "time_period" and "csb" to "location". Might also need to reformat the "time_period" column to 2023-01 instead of 2023 Jan, not quite sure.
+The model is then refit with the historic tsibble, which keeps the same coefficients and model, but update the latest time index to the new potentially later date in historic_tible. This is done because historic_tible might contain newer data than the training data used in train.R. We then predict for the new time points.
+```
+model = refit(model, historic_tible)
+predicted_dists <- forecast(model, new_data = future_tible)
+```
+We then get the mean and variation of the normal distribuition and make 100, should maybe be 1000, samples for each prediction. The column-names for the samples need to be "sample_0", "sample_1" and so on. 
+```
+n_samples <- 100
+preds <- data.frame(matrix(ncol = n_samples, nrow = nrow(future_tible)))
 
+colnames(preds) <- paste("sample", 0:(n_samples-1), sep = "_")
+
+for(i in 1:nrow(future_tible)){
+  dist <- predicted_dists[i, "disease_cases"]$disease_cases
+  preds[i,] <- rnorm(n_samples, mean = mean(dist), sd = sqrt(variance(dist)))
+}
+```
+We then rowbind all the predictions for the different locations and write the final dataframe to a csv file.
 ## Packages and docker images
 Currently all the nedded packages are called in the Rscripts. Should ideally be some docker enviroment.
