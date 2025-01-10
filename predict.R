@@ -50,6 +50,7 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     }
     #print(paste("Forecasted values:", paste(df[, "sample_0", drop=TRUE], collapse = ", ")))
   }
+  full_df["time_period"] <- df["time_period"]
   write.csv(full_df, predictions_fn, row.names = FALSE)
 }
 
