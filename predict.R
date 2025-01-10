@@ -17,11 +17,11 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     historic_df <- historic_per_location[[location]]
     model <- models[[location]]
     
-    df <- mutate(df, date = yearmonth(date)) #so tsibble understands it is monthly data, fails with exact date
-    df <- create_lagged_feature(df, "rain_mm", 3, include_all = FALSE)$df
-    df <- create_lagged_feature(df, "temp_c", 3, include_all = FALSE)$df
-    df <- fill_top_rows_from_historic_last_rows("rain_mm", 3, df, historic_df)
-    df <- fill_top_rows_from_historic_last_rows("temp_c", 3, df, historic_df)
+    df <- mutate(df, date = yearmonth(date)) |> #so tsibble understands it is monthly data, fails with exact date
+      create_lagged_feature("rain_mm", 3, include_all = FALSE) |>
+      create_lagged_feature("temp_c", 3, include_all = FALSE) |>
+      fill_top_rows_from_historic_last_rows(historic_df, "rain_mm", 3) |>
+      fill_top_rows_from_historic_last_rows(historic_df, "temp_c", 3)
     
     df_tsibble_new <- as_tsibble(df, index = date)
     
@@ -47,6 +47,7 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     }
     #print(paste("Forecasted values:", paste(df[, "sample_0", drop=TRUE], collapse = ", ")))
   }
+  colnames(full_df)[1] <- "time_period" #prefered name for time in CHAP
   write.csv(full_df, predictions_fn, row.names = FALSE)
 }
 
@@ -75,10 +76,10 @@ if (length(args) == 4) {
 # model <- models[[location]]
 # 
 # df <- mutate(df, date = yearmonth(date)) #so tsibble understands it is monthly data, fails with exact date
-# df <- create_lagged_feature(df, "rain_mm", 3, include_all = FALSE)$df
-# df <- create_lagged_feature(df, "temp_c", 3, include_all = FALSE)$df
-# df <- fill_top_rows_from_historic_last_rows("rain_mm", 3, df, historic_df)
-# df <- fill_top_rows_from_historic_last_rows("temp_c", 3, df, historic_df)
+# df <- create_lagged_feature(df, "rain_mm", 3, include_all = FALSE)
+# df <- create_lagged_feature(df, "temp_c", 3, include_all = FALSE)
+# df <- fill_top_rows_from_historic_last_rows(df, historic_df, "rain_mm", 3)
+# df <- fill_top_rows_from_historic_last_rows(df, historic_df, "temp_c", 3)
 # 
 # df_tsibble_new <- as_tsibble(df, index = date)
 # 

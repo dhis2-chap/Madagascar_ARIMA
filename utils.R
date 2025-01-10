@@ -28,7 +28,7 @@ create_lagged_feature <- function(df, feature, num_lags, include_all = TRUE){
     lag_features <- c(get_lagged_col_name(feature, num_lags))
     df[tail(lag_features, 1)] <- shift(df[[feature]], num_lags)
   }
-  return(list(df = df, lag_features = lag_features))
+  return(df)
 }
 
 cut_top_rows <- function(df, int_remove_rows){
@@ -36,7 +36,7 @@ cut_top_rows <- function(df, int_remove_rows){
   return(df[(int_remove_rows + 1):nrow(df),])
 }
 
-fill_top_rows_from_historic_last_rows <- function(feature, lag, future_df, historic_df){
+fill_top_rows_from_historic_last_rows <- function(future_df, historic_df, feature, lag){
   #we fill the lagged columns of future_df for a given feature with the newest historic data, often the training data
   future_df[1:lag, get_lagged_col_name(feature, lag)] <- historic_df[(nrow(historic_df)-lag + 1):nrow(historic_df), feature]
   return(future_df)

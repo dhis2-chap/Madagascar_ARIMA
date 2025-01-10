@@ -18,16 +18,16 @@ train_chap <- function(csv_fn, model_fn) {
 }
 
 train_single_region <- function(df, location){
-  df <- mutate(df, date = yearmonth(date)) #so tsibble understands it is monthly data, fails with exact date
-  df <- create_lagged_feature(df, "rain_mm", 3, include_all = FALSE)$df
-  df <- create_lagged_feature(df, "temp_c", 3, include_all = FALSE)$df
-  df <- cut_top_rows(df, 3)
+  df <- mutate(df, date = yearmonth(date)) |> #so tsibble understands it is monthly data, fails with exact date
+    create_lagged_feature("rain_mm", 3, include_all = FALSE) |>
+    create_lagged_feature("temp_c", 3, include_all = FALSE) |>
+    cut_top_rows(3)
   
   df_tsibble <- as_tsibble(df, index = date)
   model <- df_tsibble |>
     model(
       ARIMA(n_palu ~ rain_mm_3 + temp_c_3 + net_time)
-    )  
+    )
   return(model)
 }
 
@@ -46,12 +46,12 @@ if (length(args) == 2) {
 
 train_chap("input/trainData.csv", "output/model.bin")
 
-# dataframe_list <- get_df_per_location("input/trainData.csv")
-# df <- dataframe_list[[3]]
-# df <- mutate(df, date = yearmonth(date)) #so tsibble understands it is monthly data, fails with exact date
-# df <- create_lagged_feature(df, "rain_mm", 3, include_all = FALSE)$df
-# df <- create_lagged_feature(df, "temp_c", 3, include_all = FALSE)$df
-# df <- cut_top_rows(df, 3)
+dataframe_list <- get_df_per_location("input/trainData.csv")
+df <- dataframe_list[[3]]
+df <- mutate(df, date = yearmonth(date)) #so tsibble understands it is monthly data, fails with exact date
+df <- create_lagged_feature(df, "rain_mm", 3, include_all = FALSE)
+df <- create_lagged_feature(df, "temp_c", 3, include_all = FALSE)
+df <- cut_top_rows(df, 3)
 # 
 # df_tsibble <- as_tsibble(df, index = date)
 # model <- df_tsibble |>
