@@ -17,13 +17,13 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     historic_df <- historic_per_location[[location]]
     model <- models[[location]]
     
-    df <- mutate(df, date = yearmonth(date)) |> #so tsibble understands it is monthly data, fails with exact date
-      create_lagged_feature("rain_mm", 3, include_all = FALSE) |>
-      create_lagged_feature("temp_c", 3, include_all = FALSE) |>
-      fill_top_rows_from_historic_last_rows(historic_df, "rain_mm", 3) |>
-      fill_top_rows_from_historic_last_rows(historic_df, "temp_c", 3)
+    df <- mutate(df, time_period = yearmonth(time_period)) |> #so tsibble understands it is monthly data, fails with exact date
+      create_lagged_feature("rainfall", 3, include_all = FALSE) |>
+      create_lagged_feature("mean_temperature", 3, include_all = FALSE) |>
+      fill_top_rows_from_historic_last_rows(historic_df, "rainfall", 3) |>
+      fill_top_rows_from_historic_last_rows(historic_df, "mean_temperature", 3)
     
-    df_tsibble_new <- as_tsibble(df, index = date)
+    df_tsibble_new <- as_tsibble(df, index = time_period)
     
     predicted_dists <- forecast(model, new_data = df_tsibble_new)
     
@@ -32,7 +32,7 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     colnames(preds) <- paste("sample", 1:100, sep = "_")
     
     for(i in 1:nrow(df_tsibble_new)){
-      dist <- predicted_dists[i, "n_palu"]$n_palu
+      dist <- predicted_dists[i, "disease_cases"]$disease_cases
       preds[i,] <- rnorm(100, mean = mean(dist), sd = sqrt(variance(dist)))
     }
     
@@ -47,8 +47,8 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     }
     #print(paste("Forecasted values:", paste(df[, "sample_0", drop=TRUE], collapse = ", ")))
   }
-  colnames(full_df)[1] <- "location" #preferred name for location in CHAP
-  colnames(full_df)[2] <- "time_period" #preferred name for time in CHAP
+  #colnames(full_df)[1] <- "location" #preferred name for location in CHAP
+  #colnames(full_df)[2] <- "time_period" #preferred name for time in CHAP
   write.csv(full_df, predictions_fn, row.names = FALSE)
 }
 

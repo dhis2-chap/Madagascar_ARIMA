@@ -18,16 +18,24 @@ train_chap <- function(csv_fn, model_fn) {
 }
 
 train_single_region <- function(df, location){
-  df <- mutate(df, date = yearmonth(date)) |> #so tsibble understands it is monthly data, fails with exact date
-    create_lagged_feature("rain_mm", 3, include_all = FALSE) |>
-    create_lagged_feature("temp_c", 3, include_all = FALSE) |>
+  df <- mutate(df, time_period = yearmonth(time_period)) |> #so tsibble understands it is monthly data, fails with exact date
+    create_lagged_feature("rainfall", 3, include_all = FALSE) |>
+    create_lagged_feature("mean_temperature", 3, include_all = FALSE) |>
     cut_top_rows(3)
   
-  df_tsibble <- as_tsibble(df, index = date)
-  model <- df_tsibble |>
-    model(
-      ARIMA(n_palu ~ rain_mm_3 + temp_c_3 + net_time)
-    )
+  df_tsibble <- as_tsibble(df, index = time_period)
+  
+  if ("net_time" %in% colnames(df)){
+    model <- df_tsibble |>
+      model(
+        ARIMA(disease_cases ~ rainfall_3 + mean_temperature_3 + net_time)
+      )
+  } else {
+    model <- df_tsibble |>
+      model(
+        ARIMA(disease_cases ~ rainfall_3 + mean_temperature_3)
+      )
+  }
   return(model)
 }
 

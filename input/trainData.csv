@@ -1,4 +1,4 @@
-"location","date","n_palu","rain_mm","temp_c","net_time"
+"location","time_period","disease_cases","rainfall","mean_temperature","net_time"
 "CSB1 AMBALAVOLO",2016-07-01,5,0,18.1770599287797,0.920547945205479
 "CSB1 AMBALAVOLO",2016-08-01,3,0,20.1690984996868,1.00547945205479
 "CSB1 AMBALAVOLO",2016-09-01,3,0,22.1229010785881,1.09041095890411
