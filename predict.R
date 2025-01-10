@@ -32,7 +32,7 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     
     preds <- data.frame(matrix(ncol = 100, nrow = nrow(df_tsibble_new)))
     
-    colnames(preds) <- paste("sample", 1:100, sep = "_")
+    colnames(preds) <- paste("sample", 0:99, sep = "_")
     
     for(i in 1:nrow(df_tsibble_new)){
       dist <- predicted_dists[i, "disease_cases"]$disease_cases
