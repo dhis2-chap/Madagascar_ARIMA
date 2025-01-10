@@ -52,5 +52,34 @@ if (length(args) == 2) {
 
 
 
+#testing
+# 
+# dataframe_list <- get_df_per_location("input/training_data.csv")
+# df <- dataframe_list[[1]]
+# 
+# #try without switching to monthly
+# df <- create_lagged_feature(df, "rainfall", 3, include_all = FALSE) |>
+#   create_lagged_feature("mean_temperature", 3, include_all = FALSE) |>
+#   cut_top_rows(3)
+# 
+# df_tsibble <- as_tsibble(df, index = time_period)
+# 
+# if ("net_time" %in% colnames(df)){
+#   model <- df_tsibble |>
+#     model(
+#       ARIMA(disease_cases ~ rainfall_3 + mean_temperature_3 + net_time)
+#     )
+# } else {
+#   model <- df_tsibble |>
+#     model(
+#       ARIMA(disease_cases ~ rainfall_3 + mean_temperature_3)
+#     )
+# }
+# 
+# 
+# 
+# ?forecast
+
+
 
 

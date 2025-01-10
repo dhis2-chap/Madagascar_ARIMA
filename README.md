@@ -6,22 +6,30 @@ The goal is to integrate the ARIMA model they have made, so it can run through C
 
 ## Data
 The dataset already has 43 features. However, we only use three of them to fit the model, as well as indexes for location and time. 
-In data_preperation.R I remove the unneccessary features for this model. Then I split the data into training data and test data, where we later predict the values for the test data. These are saved as csv files called trainData and futureClimateData respectively. Reducing the dataset is not neccessary, but makes it easier to work with.
+In data_preperation.R I remove the unneccessary features for this model. Reducing the dataset is not neccessary, but makes it easier to work with. I also rename the features to the naming convention in CHAP, which for instance is "location" instead of "csb"(should be a overview of the naming conventions somewhere). Then I split the data into training data and test data, where we later predict the values for the test data. These are saved as csv files called trainData and futureClimateData respectively.
 
 ## Training
 We source some useful helper functions from utils.R, similar functions exist in other R packages. Not necessary to use utils.R. We then make the train_chap function which calls train_single_region for each seperate location. 
 ```
 train_single_region <- function(df, location){
-  df <- mutate(df, date = yearmonth(date)) |> #so tsibble understands it is monthly data
-    create_lagged_feature("rain_mm", 3, include_all = FALSE) |>
-    create_lagged_feature("temp_c", 3, include_all = FALSE) |>
+  df <- mutate(df, time_period = yearmonth(time_period)) |> 
+    create_lagged_feature("rainfall", 3, include_all = FALSE) |>
+    create_lagged_feature("mean_temperature", 3, include_all = FALSE) |>
     cut_top_rows(3)
   
-  df_tsibble <- as_tsibble(df, index = date)
-  model <- df_tsibble |>
-    model(
-      ARIMA(n_palu ~ rain_mm_3 + temp_c_3 + net_time)
-    )  
+  df_tsibble <- as_tsibble(df, index = time_period)
+  
+  if ("net_time" %in% colnames(df)){
+    model <- df_tsibble |>
+      model(
+        ARIMA(disease_cases ~ rainfall_3 + mean_temperature_3 + net_time)
+      )
+  } else {
+    model <- df_tsibble |>
+      model(
+        ARIMA(disease_cases ~ rainfall_3 + mean_temperature_3)
+      )
+  }
   return(model)
 }
 ```
