@@ -19,31 +19,27 @@ predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, pred
     
     df$disease_cases <- NA #so the dataframes have the same columns
     
-    tot_df <- rbind(historic_df, df) |> #row-bind them together
+    tot_tible <- rbind(historic_df, df) |> #row-bind them together
       mutate(time_period = yearmonth(time_period)) |> #so tsibble understands it is monthly data, fails with exact date
       create_lagged_feature("rainfall", 3, include_all = FALSE) |>
-      create_lagged_feature("mean_temperature", 3, include_all = FALSE)
+      create_lagged_feature("mean_temperature", 3, include_all = FALSE) |> 
+      as_tsibble(index=time_period)
+    historic_tible = tot_tible[1:nrow(historic_df),]
     
-    times_training <- model[[1]][[1]]$data[, "time_period"]$time_period
-    last_time_training <-  times_training[length(times_training)]
+    model = refit(model, historic_tible)
+    future_tible <- tot_tible[(nrow(historic_df) + 1): nrow(tot_tible),]
+    predicted_dists <- forecast(model, new_data = future_tible)
     
-    future_df <- filter(tot_df, as.Date(time_period) > as.Date(last_time_training))
-    #future_df <- tot_df[(nrow(historic_df) + 1): nrow(tot_df),]
-    
-    df_tsibble_new <- as_tsibble(future_df, index = time_period)
-    
-    predicted_dists <- forecast(model, new_data = df_tsibble_new)
-    
-    preds <- data.frame(matrix(ncol = 100, nrow = nrow(df_tsibble_new)))
+    preds <- data.frame(matrix(ncol = 100, nrow = nrow(future_tible)))
     
     colnames(preds) <- paste("sample", 0:99, sep = "_")
     
-    for(i in 1:nrow(df_tsibble_new)){
+    for(i in 1:nrow(future_tible)){
       dist <- predicted_dists[i, "disease_cases"]$disease_cases
       preds[i,] <- rnorm(100, mean = mean(dist), sd = sqrt(variance(dist)))
     }
     
-    sample_df <- cbind(future_df, preds)
+    sample_df <- cbind(df, preds)
     
     if (first_location){
       full_df <- sample_df
@@ -107,6 +103,22 @@ if (length(args) == 4) {
 # 
 # 
 # model$ADAMANTINA[[1]][[1]]$data$time_period
+
+# tot_df <- rbind(historic_df, df) |> #row-bind them together
+#   mutate(time_period = yearmonth(time_period)) |> #so tsibble understands it is monthly data, fails with exact date
+#   create_lagged_feature("rainfall", 3, include_all = FALSE) |>
+#   create_lagged_feature("mean_temperature", 3, include_all = FALSE) |> as_tsibble(index=time_period)
+# historic_tible = tot_df[1:nrow(historic_df),]
+# 
+# 
+# 
+# #future_df <- filter(tot_df, as.Date(time_period) > as.Date(last_time_training))
+# model = refit(model, historic_tible)
+# future_df <- tot_df[(nrow(historic_df) + 1): nrow(tot_df),]
+# # 
+# #df_tsibble_new <- as_tsibble(future_df, index = time_period)
+# # 
+# predicted_dists <- forecast(model, new_data = df_tsibble_new)
 
 
 
