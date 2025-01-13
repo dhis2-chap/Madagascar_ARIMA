@@ -1,5 +1,11 @@
 source("utils.R")
 
+library(dplyr)
+library(fable)
+library(tsibble)
+library(lubridate)
+library(distributional) #to extract info from dist objects 
+
 predict_chap <- function(model_fn, historic_data_fn, future_climatedata_fn, predictions_fn) {
   future_per_location <- get_df_per_location(future_climatedata_fn)
   historic_per_location <- get_df_per_location(historic_data_fn)

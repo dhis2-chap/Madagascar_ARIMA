@@ -73,7 +73,7 @@ for(i in 1:nrow(future_tible)){
 ```
 We then rowbind all the predictions for the different locations and write the final dataframe to a csv file.
 ## Packages
-All packages used in the code must be written in the file requirements.txt, with a package-name at each line. MLproject then creates a docker enviroment with the mentioned packages installed. For testing locally call all the packages from isolated_run.R, or just in train.R and predict.R when coding and testing.
+All packages used in the code must be written in the file requirements.txt, with a package-name at each line. MLproject then creates a docker enviroment with the mentioned packages installed. This ensures that all the packages are installed and they can be called in the necessary files.
 
 ## Transform to log-scale?
 I know this is the old ARIMA model, but sampling without log-transforming makes it possible to get negative values. Log-transforming removes this issue.
