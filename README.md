@@ -2,7 +2,7 @@
 This is an implementation of the old ARIMA model for malaria from the Madagascar group. 
 The original code is from https://gitlab.com/pivot-dev/PRIDE-C/pridec-model/-/blob/main/scripts/csb-cases/03_forecast-models/arima-model-old.qmd?ref_type=heads
 and the data is from https://gitlab.com/pivot-dev/PRIDE-C/pridec-model/-/blob/main/data/for-model/csb-cases/malaria-u5-modelData.csv.
-The goal is to integrate the ARIMA model they have made, so it can run through CHAP. The framework is a file for training and a seperate file for prediction. They define the functions train_chap and predict_chap and some standard framework underneath for running the model with CHAP. isolated_run.R is only for testing locally. The goal is to have data as the only input and to return samples from the predicted distribuitions for each time point and location. In this implementation I have used $100$ samples for each observation, should be larger in practice.
+The goal is to integrate the ARIMA model they have made, so it can run through CHAP. The framework is a file for training and a seperate file for prediction. They define the functions train_chap and predict_chap and some standard framework underneath for running the model with CHAP. The strictly necessary files are train.R, predict.R, MLproject and requirements.txt. isolated_run.R is only for testing locally. The goal is to have data as the only input and to return samples from the predicted distribuitions for each time point and location. In this implementation I have used $100$ samples for each observation, should be larger in practice.
 
 ## Data
 The dataset already has 43 features. However, we only use three of them to fit the model, as well as indexes for location and time. 
@@ -54,7 +54,7 @@ historic_tible = tot_tible[1:nrow(historic_df),]
 future_tible <- tot_tible[(nrow(historic_df) + 1): nrow(tot_tible),]
     
 ```
-The model is then refit with the historic tsibble, which keeps the same coefficients and model, but update the latest time index to the new potentially later date in historic_tible. This is done because historic_tible might contain newer data than the training data used in train.R. We then predict for the new time points.
+The model is then refit with the historic tsibble, which keeps the same coefficients and model, but update the latest time index to the new potentially later date in historic_tible. This is done because historic_tible might contain newer data than the training data used in train.R. We then predict for the new time points. This step will be different for different models, but the goal is to be able to predict for some following months, and also be able have some months with known data between the training data and the data we predict for.
 ```
 model = refit(model, historic_tible)
 predicted_dists <- forecast(model, new_data = future_tible)
@@ -72,5 +72,8 @@ for(i in 1:nrow(future_tible)){
 }
 ```
 We then rowbind all the predictions for the different locations and write the final dataframe to a csv file.
-## Packages and docker images
-Currently all the nedded packages are called in the Rscripts. Should ideally be some docker enviroment.
+## Packages
+All packages used in the code must be written in the file requirements.txt, with a package-name at each line. MLproject then creates a docker enviroment with the mentioned packages installed. For testing locally call all the packages from isolated_run.R, or just in train.R and predict.R when coding and testing.
+
+## Transform to log-scale?
+I know this is the old ARIMA model, but sampling without log-transforming makes it possible to get negative values. Log-transforming removes this issue.
