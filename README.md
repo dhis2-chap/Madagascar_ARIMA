@@ -6,7 +6,7 @@ The goal is to integrate the ARIMA model they have made, so it can run through C
 
 ## Data
 The dataset already has 43 features. However, we only use three of them to fit the model, as well as indexes for location and time. 
-In data_preperation.R I remove the unneccessary features for this model. Reducing the dataset is not neccessary, but makes it easier to work with. I also rename the features to the naming convention in CHAP, which for instance is "location" instead of "csb"(should be a overview of the naming conventions somewhere). Then I split the data into training data and test data, where we later predict the values for the test data. These are saved as csv files called trainData and futureClimateData respectively.
+In data_preperation.R I remove the unneccessary features for this model. Reducing the dataset is not neccessary, but makes it easier to work with. I also rename the features to the naming convention in CHAP, which for instance is "location" instead of "csb"(should be a overview of the naming conventions somewhere). Then I split the data into training data and test data, where we later predict the values for the test data. These are saved as csv files called trainData and futureClimateData respectively. Additionally, CHAP currently also requires a population column so I added a population column filled with ones, this will change when CHAP is updated.
 
 ## Training
 We source some useful helper functions from utils.R, similar functions exist in other R packages. Not necessary to use utils.R. We then make the train_chap function which calls train_single_region for each seperate location. We make different models for if net_time is included or not as the tests in CHAP only use climate data, like rainfall and temperature. 
@@ -33,7 +33,7 @@ train_single_region <- function(df, location){
   return(model)
 }
 ```
-I change the date to monthly to avoid making a row for every day, this could make the model slightly different as ARIMA now might assumes the months are equispaced, not sure. Then I use helper functions for lag and deleting the top_rows, could use mutate as well. Then fit the ARIMA model through tsibble objects, and returns the fitted model. From train_chap we save all the models in an output folder.
+I change the elements in time_period to yearmonth to avoid making a row for every day, this could make the model slightly different as ARIMA now might assumes the months are equispaced, not sure. yearmonth also converts the elements to dates objects. Then I use helper functions for lag and deleting the top_rows, could use mutate as well. Then fit the ARIMA model through tsibble objects, and return the fitted model. From train_chap we save all the models in an output folder.
 
 ## Predicting
 For each location we process the data as below. We add disease_cases to the future dataframe and make the tsibble tot_tible for all historic and future data with lags and the formatting we desire. We then split it back into historic and future tsibbles.
@@ -73,7 +73,7 @@ for(i in 1:nrow(future_tible)){
 ```
 We then rowbind all the predictions for the different locations and write the final dataframe to a csv file.
 ## Packages
-All packages used in the code must be written in the file requirements.txt, with a package-name at each line. MLproject then creates a docker enviroment with the mentioned packages installed. This ensures that all the packages are installed and they can be called in the necessary files.
+We include the necessary packages through a Docker Image created in the repository docker_for-MadagascarArima. Here we build on an existing image and add the new unique packages for the current application, in this case `fable` and `distribuitional`. The name of the Docker Image created here is then referenced in the MLproject file. See the repository docker_r_template for more information on Dockers.
 
-## Transform to log-scale?
-I know this is the old ARIMA model, but sampling without log-transforming makes it possible to get negative values. Log-transforming removes this issue.
+## MLproject
+This file governs the flow onternally in CHAP. The idea is to use train and predict as the two entrypoints, and this runs the Rscripts with the supplied arguments. Note that this names, for instance `train_data` and `model` only are internal names which are passed on as variables to train_chap and predict_chap, which off course can use seperate naming conventions. The only line that should be altered in this file is the image name on line $4$, and possible adapters, as are used in the repository chap_auto_ewars, but this is optional.
