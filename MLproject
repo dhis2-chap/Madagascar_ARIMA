@@ -1,7 +1,8 @@
 
 name: Madagascar_ARIMA
 
-r_env: requirements.txt
+docker_env: 
+  image: ivargr/r_inla:latest
 
 entry_points:
   train:
