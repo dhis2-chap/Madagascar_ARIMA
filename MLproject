@@ -2,7 +2,7 @@
 name: Madagascar_ARIMA
 
 docker_env: 
-  image: ivargr/r_inla:latest
+  image: ghcr.io/dhis2-chap/docker_for_madagascararima:master
 
 entry_points:
   train:
