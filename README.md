@@ -77,3 +77,9 @@ We include the necessary packages through a Docker Image created in the reposito
 
 ## MLproject
 This file governs the flow onternally in CHAP. The idea is to use train and predict as the two entrypoints, and this runs the Rscripts with the supplied arguments. Note that the variable names, for instance `train_data` and `model` only are internal names which are passed on as variables to train_chap and predict_chap, which off course can use seperate naming conventions. The only line that should be altered in this file is the image name on line $5$ and the name on line 2, which is purely for internal use. Can also and adapters, as are used in the repository chap_auto_ewars, but this is optional. In rare cases you might also need to add additional arguments to train and predict, for instance a geojson polygon file to include spatial features, an example of this can be done in INLA. However, if you need more input types it is probably best to ask someone here, either Knut or Ivar for example, as it might need further support in the backend.
+
+## utils.R
+This is a collection of helper functions that can be used in model implementation. This file is completly optional to use.
+
+## isolated_run.R
+This file is purely for testing locally, and is useful for running the model in Rstudio for instance. This is not used by CHAP at all and is voluntary to include when implementing models.
