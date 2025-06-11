@@ -1,6 +1,33 @@
 
 name: Madagascar_ARIMA
 
+target: disease_cases
+required_covariates: 
+  - population
+  - precipitation
+  - temperature
+supported_period_type: month
+allow_free_additional_continuous_covariates: false
+
+meta_data: 
+  display_name: ARIMA
+  description: >
+    A general ARIMA model is a timeseries model with an autoregressive part, a moving average part and the option to difference the original timeseries, 
+    often to make it stationary. Additonally we have lagged rainfall and temperature, which actually makes this an ARIMAX model, where the X indicates 
+    exogenous variables. 
+  author: Halvard Emil Sand-Larsen
+  author_note: > 
+    This model handles each region individually and it expects monthly data for all the covariates. The model utilizes the arima function which chooses 
+    the order of the differencing, autoregression and the moving average for us. 
+  author_assessed_status: red
+  organization: HISP Centre, University of Oslo
+  organization_logo_url: https://landportal.org/sites/default/files/2024-03/university_of_oslo_logo.png
+  contact_email: knut.rand@dhis2.org
+  citation_info: >
+    Climate Health Analytics Platform. 2025. "ARIMA model".
+    HISP Centre, University of Oslo.
+    https://dhis2-chap.github.io/chap-core/external_models/overview_of_supported_models.html
+
 docker_env: 
   image: ghcr.io/dhis2-chap/docker_for_madagascararima:master
 
